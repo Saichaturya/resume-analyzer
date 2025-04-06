@@ -3,7 +3,6 @@ import PyPDF2
 import pandas as pd
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import matplotlib.pyplot as plt
 from io import BytesIO
 
@@ -37,7 +36,7 @@ def extract_keywords(text, top_n=20):
     return list(top_keywords.index)
 
 # -------------------------------
-# Match Keywords and Generate Score
+# Compare Keywords and Get Score
 # -------------------------------
 def compare_resume_with_job(resume_keywords, job_keywords):
     matched = list(set(resume_keywords) & set(job_keywords))
@@ -46,7 +45,7 @@ def compare_resume_with_job(resume_keywords, job_keywords):
     return match_score, matched, missing
 
 # -------------------------------
-# Downloadable Report
+# Generate Downloadable Report
 # -------------------------------
 def create_report(job_title, score, matched, missing):
     report = f"Job Role: {job_title}\n"
@@ -72,37 +71,40 @@ job_description = st.text_area("📋 Paste Job Description", height=200)
 resume_file = st.file_uploader("📤 Upload Your Resume (PDF Only)", type=["pdf"])
 
 # Analyze Button
-if st.button("Analyze Resume") and resume_file and job_description:
-    with st.spinner("Analyzing resume..."):
-        resume_text = extract_text_from_pdf(resume_file)
-        clean_resume = clean_text(resume_text)
-        clean_job_desc = clean_text(job_description)
+analyze_clicked = st.button("Analyze Resume")
 
-        resume_keywords = extract_keywords(clean_resume, top_n=30)
-        job_keywords = extract_keywords(clean_job_desc, top_n=20)
+# Process after button click
+if analyze_clicked:
+    if resume_file and job_description:
+        with st.spinner("Analyzing resume..."):
+            resume_text = extract_text_from_pdf(resume_file)
+            clean_resume = clean_text(resume_text)
+            clean_job_desc = clean_text(job_description)
 
-        score, matched_keywords, missing_keywords = compare_resume_with_job(resume_keywords, job_keywords)
+            resume_keywords = extract_keywords(clean_resume, top_n=30)
+            job_keywords = extract_keywords(clean_job_desc, top_n=20)
 
-        # Results
-        st.subheader("📊 Match Results")
-        st.metric(label="Match Score", value=f"{score}%")
-        st.success(f"✅ Keywords Found in Resume: {', '.join(matched_keywords)}")
-        st.warning(f"❌ Missing Keywords: {', '.join(missing_keywords)}")
+            score, matched_keywords, missing_keywords = compare_resume_with_job(resume_keywords, job_keywords)
 
-        # Chart
-        st.subheader("📈 Keyword Match Overview")
-        fig, ax = plt.subplots()
-        ax.bar(["Matched", "Missing"], [len(matched_keywords), len(missing_keywords)], color=["green", "red"])
-        ax.set_ylabel("Number of Keywords")
-        st.pyplot(fig)
+            # Results
+            st.subheader("📊 Match Results")
+            st.metric(label="Match Score", value=f"{score}%")
+            st.success(f"✅ Keywords Found in Resume: {', '.join(matched_keywords)}")
+            st.warning(f"❌ Missing Keywords: {', '.join(missing_keywords)}")
 
-        # Download Report
-        st.subheader("📥 Download Suggestions Report")
-        report_text = create_report(job_title, score, matched_keywords, missing_keywords)
-        buffer = BytesIO()
-        buffer.write(report_text.encode())
-        buffer.seek(0)
-        st.download_button(label="Download Report (.txt)", data=buffer, file_name="resume_analysis.txt", mime="text/plain")
+            # Chart
+            st.subheader("📈 Keyword Match Overview")
+            fig, ax = plt.subplots()
+            ax.bar(["Matched", "Missing"], [len(matched_keywords), len(missing_keywords)], color=["green", "red"])
+            ax.set_ylabel("Number of Keywords")
+            st.pyplot(fig)
 
-elif st.button("Analyze Resume"):
-    st.warning("Please provide both a job description and upload a resume.")
+            # Download Report
+            st.subheader("📥 Download Suggestions Report")
+            report_text = create_report(job_title, score, matched_keywords, missing_keywords)
+            buffer = BytesIO()
+            buffer.write(report_text.encode())
+            buffer.seek(0)
+            st.download_button(label="Download Report (.txt)", data=buffer, file_name="resume_analysis.txt", mime="text/plain")
+    else:
+        st.warning("Please provide both a job description and upload a resume.")

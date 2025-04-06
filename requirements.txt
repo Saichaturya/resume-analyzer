@@ -1,4 +1,6 @@
-Flask
+streamlit
 PyPDF2
-docx2txt
-gunicorn
+scikit-learn
+pandas
+matplotlib
+
